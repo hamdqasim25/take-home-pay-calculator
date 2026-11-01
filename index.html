@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayCalc | Take-Home Pay Calculator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>PayCalc</h1>
+    </header>
+
+    <main>
+        <section class="intro-section">
+            <h2>Calculate Your Take-Home Pay</h2>
+            <p>Enter your gross salary below to see your estimated take-home pay after taxes and deductions.</p>
+        </section>
+        <div class="calculator-container">    
+            <section class="form-section">
+                <h2>Your Salary Details</h2>
+                <form id="salary-form">
+                    <div class="form-group">
+                        <label for="country">Country:</label>
+                        <select id="country" name="country">
+                            <option value="uk">United Kingdom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="pay-frequency">Pay Frequency:</label>
+                        <select id="pay-frequency" name="pay-frequency">
+                            <option value="annual">Annual</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="salary">Gross Salary (£):</label>
+                        <input
+                            type="number"
+                            id="salary"
+                            name="salary"
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g. 35000"
+                            required
+                        >
+                    </div>
+                    <button type="submit">Calculate Take-Home Pay</button>
+                </form>
+                <p
+                    class="error-message"
+                    id="error-message"
+                    aria-live="polite"
+                ></p>
+            </section>
+
+            <section class="results-section" id="results">
+                <h2>Your Salary Breakdown</h2>
+                <p>
+                    Annual Take-Home Pay:
+                    <output id="annual-take-home-pay">£—</output>
+                </p>
+                <p>
+                    Monthly Take-Home Pay:
+                    <output id="monthly-take-home-pay">£—</output>
+                </p>
+                <p>
+                    Weekly Take-Home Pay:
+                    <output id="weekly-take-home-pay">£—</output>
+                </p>
+                <p>
+                    Daily Take-Home Pay:
+                    <output id="daily-take-home-pay">£—</output>
+                </p>
+                <p>
+                    Income Tax:
+                    <output id="income-tax">£—</output>
+                </p>
+                <p>
+                    National Insurance:
+                    <output id="national-insurance">£—</output>
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>Calculations are estimates for informational purposes.</p>
+    </footer>
+</body>
+</html>

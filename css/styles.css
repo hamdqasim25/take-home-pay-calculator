@@ -1,0 +1,163 @@
+
+/* Apply consistent sizing to elements */
+* {
+    box-sizing: border-box;
+}
+
+/* General page styling */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    line-height: 1.6;
+}
+
+/* Website header */
+header {
+    padding: 20px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Headings styling */
+h1{
+    font-size: 2rem;
+    margin: 0 0 10px;
+    color: #1e293b;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+}
+
+/* Main content area */
+main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+label {
+    font-weight: 600;
+}
+
+/* Intro section styling */
+.intro-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/*Calculator section styling */
+
+.calculator-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* Form section styling */
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Calculator panels */
+
+.form-section,
+.results-section {
+    padding: 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
+    background-color: #ffffff;
+}
+
+/* Results section styling */
+
+.results-section p {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.results-section output {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Input fields and dropdown boxes */
+input,
+select {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #1e293b;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-color: #3b82f6;
+}
+
+
+option {
+    background-color: #ffffff;
+    color: #1e293b;
+}
+
+/*button styling */
+button {
+    padding: 10px 20px;
+    background-color: #3b82f6;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+button:hover {
+    background-color: #2563eb;
+}
+
+button:focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 3px;
+}
+
+
+/* Website footer */
+footer {
+    padding: 20px;
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Responsive design for smaller screens */
+
+@media (max-width: 768px) {
+    .calculator-container {
+        grid-template-columns: 1fr;
+    }
+}
