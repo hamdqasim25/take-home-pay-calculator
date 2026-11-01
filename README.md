@@ -10,11 +10,11 @@ This is a personal learning project to develop my web development skills and gra
 
 ### Initial development
 
-The initial website will use vanilla HTML, CSS and JavaScript, without additional frameworks or dependencies.
+The website currently uses HTML and CSS. Vanilla JavaScript will handle the calculations, without additional frameworks or dependencies.
 
 - **HTML5:** structures the page and its content.
 - **CSS3:** controls appearance and adapts the layout to different screen sizes.
-- **JavaScript:** handles calculations and user interactions.
+- **JavaScript (planned):** will handle calculations and user interactions.
 - **Git and GitHub:** track changes and document development.
 
 ### Planned for later
@@ -31,9 +31,9 @@ These tools and practices have not yet been implemented:
 
 ### Phase 1: Website Design and Structure
 
-- [ ] Build the page with HTML and CSS.
-- [ ] Design the calculator form and results section.
-- [ ] Adapt the layout for desktop and mobile.
+- [x] Build the page with HTML and CSS.
+- [x] Design the calculator form and results section.
+- [x] Adapt the layout for desktop and mobile.
 
 ### Phase 2: UK Salary Calculations
 
@@ -66,4 +66,4 @@ I want to learn how to build websites from scratch, use JavaScript to solve prac
 
 ## Project Status
 
-The project is in its early planning and development stage. The repository currently contains empty starter files; calculator functionality has not yet been implemented.
+The initial page design is implemented, with a salary form, results placeholders and a responsive layout that stacks the panels on smaller screens. The form includes country and pay-frequency selectors, basic salary input constraints and keyboard focus styling. Calculations and working results are still to come.
