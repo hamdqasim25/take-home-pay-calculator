@@ -24,14 +24,21 @@
                     <div class="form-group">
                         <label for="country">Country:</label>
                         <select id="country" name="country">
-                            <option value="uk">United Kingdom</option>
+                            <option value="UK">United Kingdom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tax-year">Tax Year:</label>
+                        <select id="tax-year" name="tax-year">
+                            <option value="2026-27">2026/27</option>
+                            <option value="2025-26">2025/26</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="pay-frequency">Pay Frequency:</label>
                         <select id="pay-frequency" name="pay-frequency">
-                            <option value="annual">Annual</option>
-                            <option value="monthly">Monthly</option>
+                            <option value="Annual">Annual</option>
+                            <option value="Monthly">Monthly</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -51,6 +58,7 @@
                 <p
                     class="error-message"
                     id="error-message"
+                    role="alert"
                     aria-live="polite"
                 ></p>
             </section>
@@ -88,5 +96,7 @@
     <footer>
         <p>Calculations are estimates for informational purposes.</p>
     </footer>
+
+    <script type="module" src="./js/main.js"></script>
 </body>
 </html>
