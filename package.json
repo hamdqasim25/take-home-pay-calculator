@@ -1,0 +1,9 @@
+{
+  "name": "pay-calc",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules --test"
+  }
+}
