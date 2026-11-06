@@ -77,3 +77,12 @@ export function calculatePayBreakdown(annualTakeHomePay) {
         daily: annualTakeHomePay / 365
     };
 }
+
+
+// Calculate the percentage of an amount relative to a total
+export function calculatePercentage(amount, total) {
+    if (total === 0) {
+        return 0; // Avoid division by zero
+    }
+    return (amount / total) * 100;
+}

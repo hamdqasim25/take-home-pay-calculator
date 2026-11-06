@@ -1,144 +1,246 @@
-
-/* Apply consistent sizing to elements */
+﻿/* 1. Global resets and base styles: allow content to size naturally. */
 * {
     box-sizing: border-box;
 }
 
-/* General page styling */
 body {
     margin: 0;
     font-family: Arial, sans-serif;
     background-color: #f8fafc;
     color: #1e293b;
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
-/* Website header */
+/* 2. Typography and headings */
+h1, h2, h3, p {
+    margin: 0;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1rem; }
+
+/* 3. Header: keep the brand aligned with the calculator. */
 header {
-    padding: 20px;
+    padding: 10px max(20px, calc((100% - 1240px) / 2));
     background-color: #ffffff;
     border-bottom: 1px solid #e2e8f0;
 }
 
-/* Headings styling */
-h1{
-    font-size: 2rem;
-    margin: 0 0 10px;
-    color: #1e293b;
-}
-
-h2 {
-    font-size: 1.5rem;
-}
-
-h3 {
-    font-size: 1.25rem;
-}
-
-/* Main content area */
+/* 4. Main layout and intro */
 main {
-    max-width: 1000px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 30px 20px;
+    padding: 20px;
 }
 
-label {
-    font-weight: 600;
-}
-
-/* Intro section styling */
 .intro-section {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
-/*Calculator section styling */
+.intro-section h2 { margin-bottom: 6px; }
+.intro-section p { color: #475569; }
 
+/* 5. Calculator grid: preserve the form-to-results ratio. */
 .calculator-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 20px;
 }
 
-/* Form section styling */
-
-form {
+/* 6. Form and inputs */
+form, .form-group {
     display: flex;
     flex-direction: column;
-    gap: 15px;
 }
 
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
+form { gap: 14px; }
+.form-group { gap: 5px; }
+label { font-weight: 600; }
 
-/* Calculator panels */
-
-.form-section,
-.results-section {
-    padding: 20px;
-    border: 2px solid #e2e8f0;
-    border-radius: 15px;
-    background-color: #ffffff;
-}
-
-/* Results section styling */
-
-.results-section p {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.results-section output {
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-/* Input fields and dropdown boxes */
-input,
-select {
+input, select {
     width: 100%;
-    padding: 12px 15px;
-    font-size: 1rem;
-    font-family: inherit;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    font: inherit;
     color: #1e293b;
     background-color: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
 }
 
-input:focus-visible,
-select:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
-    border-color: #3b82f6;
-}
-
-
 option {
     background-color: #ffffff;
     color: #1e293b;
 }
 
-/*button styling */
-button {
-    padding: 10px 20px;
-    background-color: #3b82f6;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
+.error-message {
+    color: #b91c1c;
+    overflow-wrap: anywhere;
 }
 
-button:hover {
+.error-message:not(:empty) { margin-top: 12px; }
+
+/* 7. Shared panels and result rows */
+.form-section, .results-section {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background-color: #ffffff;
+}
+
+.form-section > h2, .results-section > h2 { margin-bottom: 16px; }
+
+.results-section p:not(.breakdown-note) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.results-section output {
+    min-width: 0;
+    max-width: 100%;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.take-home-summary, .deductions-card {
+    padding: 16px;
+    border: 1px solid #d8e4df;
+    border-radius: 8px;
+}
+
+/* 8. Take-home summary: annual pay is the primary result. */
+.take-home-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 12px 20px;
+    background-color: #e0f3e9;
+    color: #145c3f;
+}
+
+.take-home-summary p {
+    flex-direction: column;
+}
+
+#annual-take-home-pay {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+#monthly-take-home-pay {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* 9. Weekly and daily results */
+.take-home-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 20px;
+    padding: 16px 0;
+}
+
+.take-home-details p { flex-direction: column; }
+.take-home-details output { font-size: 1.125rem; }
+
+/* 10. Deductions: separate the total with a rule and stronger weight. */
+.deductions-card {
+    background-color: #faeaf0;
+    border-color: #ecd6df;
+}
+
+.deductions-card h3 { margin-bottom: 8px; }
+.deductions-card p { padding: 6px 0; }
+.deductions-card output { font-size: 1.125rem; }
+
+.deductions-card .total-deductions {
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid #dcb9c7;
+    font-weight: 700;
+}
+
+/* 11. Illustrative salary breakdown: flex weights normalise rounding. */
+.salary-breakdown {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.breakdown-note {
+    margin: 4px 0 12px;
+    color: #475569;
+    font-size: 0.875rem;
+}
+
+.salary-bar {
+    display: flex;
+    height: 30px;
+    overflow: hidden;
+    border-radius: 15px;
+}
+
+.salary-segment {
+    flex: var(--share) 1 0;
+    min-width: 0;
+}
+
+.breakdown-take-home { background-color: #27825b; }
+.breakdown-income-tax { background-color: #d99a25; }
+.breakdown-national-insurance { background-color: #64748b; }
+
+.salary-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+}
+
+.salary-legend li {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.legend-swatch {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 2px;
+}
+
+/* 12. Buttons and interaction states: visible keyboard focus. */
+button {
+    min-height: 44px;
+    padding: 10px 16px;
     background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+}
+
+button:hover { background-color: #1d4ed8; }
+
+input:focus-visible, select:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-color: #3b82f6;
 }
 
 button:focus-visible {
@@ -146,18 +248,28 @@ button:focus-visible {
     outline-offset: 3px;
 }
 
-
-/* Website footer */
+/* 13. Footer */
 footer {
-    padding: 20px;
-    background-color: #ffffff;
+    padding: 12px 20px;
     border-top: 1px solid #e2e8f0;
+    text-align: center;
+    color: #475569;
+    font-size: 0.875rem;
 }
 
-/* Responsive design for smaller screens */
+/* 14. Responsive layouts: natural scrolling and wrapping on small screens. */
+@media (max-width: 1000px) {
+    .take-home-summary { grid-template-columns: minmax(0, 1fr); }
+}
 
 @media (max-width: 768px) {
-    .calculator-container {
-        grid-template-columns: 1fr;
-    }
+    main { padding: 16px; }
+    .calculator-container { grid-template-columns: minmax(0, 1fr); }
+    .form-section, .results-section { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+    .take-home-details { grid-template-columns: minmax(0, 1fr); }
+    .take-home-details p { flex-direction: row; }
+    #annual-take-home-pay { font-size: 2rem; }
 }

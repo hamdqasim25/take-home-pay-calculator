@@ -53,6 +53,18 @@
                             required
                         >
                     </div>
+                    <div class="form-group">
+                        <label for="pension-contribution">Pension Contribution (%):</label>
+                        <input
+                            type="number"
+                            id="pension-contribution"
+                            name="pension-contribution"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            value="0"
+                        >
+                    </div>
                     <button type="submit">Calculate Take-Home Pay</button>
                 </form>
                 <p
@@ -65,30 +77,55 @@
 
             <section class="results-section" id="results">
                 <h2>Your Salary Breakdown</h2>
-                <p>
-                    Annual Take-Home Pay:
-                    <output id="annual-take-home-pay">£0.00</output>
-                </p>
-                <p>
-                    Monthly Take-Home Pay:
-                    <output id="monthly-take-home-pay">£0.00</output>
-                </p>
-                <p>
-                    Weekly Take-Home Pay:
-                    <output id="weekly-take-home-pay">£0.00</output>
-                </p>
-                <p>
-                    Daily Take-Home Pay:
-                    <output id="daily-take-home-pay">£0.00</output>
-                </p>
-                <p>
-                    Income Tax:
-                    <output id="income-tax">£0.00</output>
-                </p>
-                <p>
-                    National Insurance:
-                    <output id="national-insurance">£0.00</output>
-                </p>
+                <div class="take-home-summary">
+                    <p>
+                        Annual Take-Home Pay:
+                        <output id="annual-take-home-pay">£0.00</output>
+                    </p>
+                    <p>
+                        Monthly Take-Home Pay:
+                        <output id="monthly-take-home-pay">£0.00</output>
+                    </p>
+                </div>
+                <div class="take-home-details">
+                    <p>
+                        Weekly Take-Home Pay:
+                        <output id="weekly-take-home-pay">£0.00</output>
+                    </p>
+                    <p>
+                        Daily Take-Home Pay:
+                        <output id="daily-take-home-pay">£0.00</output>
+                    </p>
+                </div>
+                <section class="deductions-card">
+                    <h3>Your Deductions</h3>
+                    <p>
+                        Income Tax:
+                        <output id="income-tax">£0.00</output>
+                    </p>
+                    <p>
+                        National Insurance:
+                        <output id="national-insurance">£0.00</output>
+                    </p>
+                    <p class="total-deductions">
+                        Total Deductions:
+                        <output id="total-deductions">£0.00</output>
+                    </p>
+                </section>
+                <section class="salary-breakdown" aria-labelledby="salary-breakdown-title">
+                    <h3 id="salary-breakdown-title">Where Your Salary Goes</h3>
+                    <p class="breakdown-note">Breakdown of your calculated annual salary. Percentages are rounded to two decimal places.</p>
+                    <div class="salary-bar" aria-hidden="true">
+                        <span class="salary-segment breakdown-take-home" data-category="take-home" style="--share: 0"></span>
+                        <span class="salary-segment breakdown-income-tax" data-category="income-tax" style="--share: 0"></span>
+                        <span class="salary-segment breakdown-national-insurance" data-category="national-insurance" style="--share: 0"></span>
+                    </div>
+                    <ul class="salary-legend" aria-label="Calculated salary proportions">
+                        <li data-category="take-home"><span class="legend-swatch breakdown-take-home" aria-hidden="true"></span>Take-home <span class="take-home-percentage">0%</span></li>
+                        <li data-category="income-tax"><span class="legend-swatch breakdown-income-tax" aria-hidden="true"></span>Income Tax <span class="income-tax-percentage">0%</span></li>
+                        <li data-category="national-insurance"><span class="legend-swatch breakdown-national-insurance" aria-hidden="true"></span>National Insurance <span class="national-insurance-percentage">0%</span></li>
+                    </ul>
+                </section>
             </section>
         </div>
     </main>

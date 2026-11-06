@@ -21,6 +21,15 @@ async function createForm() {
         Intl,
         console: { log() {}, error(...args) { logs.push(args); } },
         document: {
+            // Minimal chart DOM support so the existing form tests can load main.js.
+            querySelector(selector) {
+                return elements[selector] ??= {
+                    textContent: "",
+                    style: {
+                        setProperty(name, value) { this[name] = String(value); }
+                    }
+                };
+            },
             getElementById(id) {
                 return elements[id] ??= {
                     value: "", textContent: "", events: {},
