@@ -1,4 +1,4 @@
-// Import the necessary functions and tax rules
+// 1. Imports and tax rules
 
 import {
     calculateAnnualSalary,
@@ -6,15 +6,13 @@ import {
     calculateIncomeTax,
     calculateNationalInsurance,
     calculateTakeHomePay,
-    calculatePayBreakdown
+    calculatePayBreakdown,
+    calculatePercentage
 } from "./calculators/uk.js";
 
 import { uk2026TaxRules } from "./tax-rules/uk-2026-27.js";
 
-// Log a message to the console to indicate that the script has loaded
-console.log("Pay Calc JavaScript loaded successfully!");
-
-// Create a currency formatter for displaying monetary values in GBP
+// 2. Currency formatter - keep monetary outputs consistent
 
 const currencyFormatter = new Intl.NumberFormat("en-GB", {
     style: "currency",
@@ -23,7 +21,7 @@ const currencyFormatter = new Intl.NumberFormat("en-GB", {
     maximumFractionDigits: 2
 });
 
-// Get references to the form and its input elements
+// 3. DOM references - form inputs
 
 const salaryForm = document.getElementById("salary-form");
 const salaryInput = document.getElementById("salary");
@@ -31,7 +29,7 @@ const countrySelect = document.getElementById("country");
 const taxYearSelect = document.getElementById("tax-year");
 const payFrequencySelect = document.getElementById("pay-frequency");
 
-// Get references to the output elements for displaying results
+// 4. DOM references - salary outputs
 
 const annualPayElement = document.getElementById("annual-take-home-pay");
 const monthlyPayElement = document.getElementById("monthly-take-home-pay");
@@ -39,10 +37,21 @@ const weeklyPayElement = document.getElementById("weekly-take-home-pay");
 const dailyPayElement = document.getElementById("daily-take-home-pay");
 const incomeTaxElement = document.getElementById("income-tax");
 const nationalInsuranceElement = document.getElementById("national-insurance");
+const totalDeductionsElement = document.getElementById("total-deductions");
 
+// 5. DOM references - cache salary segments and legend labels for rendering and resets
+const takeHomeSegment = document.querySelector(".salary-segment.breakdown-take-home");
+const incomeTaxSegment = document.querySelector(".salary-segment.breakdown-income-tax");
+const nationalInsuranceSegment = document.querySelector(".salary-segment.breakdown-national-insurance");
+
+const takeHomePercentageLabel = document.querySelector(".take-home-percentage");
+const incomeTaxPercentageLabel = document.querySelector(".income-tax-percentage");
+const nationalInsurancePercentageLabel = document.querySelector(".national-insurance-percentage");
+
+// 6. DOM reference - validation error message
 const errorMessage = document.getElementById("error-message");
 
-// Clear results when validation fails or form values change
+// 7. Clear and reset results - errors use dashes; input edits restore zero amounts
 function clearResults(placeholder = "-") {
     annualPayElement.textContent = placeholder;
     monthlyPayElement.textContent = placeholder;
@@ -50,6 +59,14 @@ function clearResults(placeholder = "-") {
     dailyPayElement.textContent = placeholder;
     incomeTaxElement.textContent = placeholder;
     nationalInsuranceElement.textContent = placeholder;
+    totalDeductionsElement.textContent = placeholder;
+    takeHomePercentageLabel.textContent = "0%";
+    incomeTaxPercentageLabel.textContent = "0%";
+    nationalInsurancePercentageLabel.textContent = "0%";
+
+    takeHomeSegment.style.setProperty("--share", 0);
+    incomeTaxSegment.style.setProperty("--share", 0);
+    nationalInsuranceSegment.style.setProperty("--share", 0);
 }
 
 function resetResults() {
@@ -57,15 +74,16 @@ function resetResults() {
     clearResults(currencyFormatter.format(0));
 }
 
+// 8. Input listeners - discard stale results when salary details change
 salaryInput.addEventListener("input", resetResults);
 salaryInput.addEventListener("change", resetResults);
 countrySelect.addEventListener("change", resetResults);
 taxYearSelect.addEventListener("change", resetResults);
 payFrequencySelect.addEventListener("change", resetResults);
 
-// Add an event listener to the form submission
+// 9. Form submission and validation
 
-salaryForm.addEventListener("submit", function(event) {
+salaryForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
     // Get the values from the form inputs
@@ -92,15 +110,14 @@ salaryForm.addEventListener("submit", function(event) {
     }
 
     // Validate the selected country and tax year
-    if (
-        country !== uk2026TaxRules.country || taxYear !== uk2026TaxRules.taxYear) {
-        errorMessage.textContent ="This country or tax year is not supported yet.";
+    if (country !== uk2026TaxRules.country || taxYear !== uk2026TaxRules.taxYear) {
+        errorMessage.textContent = "This country or tax year is not supported yet.";
         clearResults();
         return;
     }
 
     try {
-        // Calculate the annual salary based on the pay frequency
+        // 10. Salary and tax calculations - annualise before calculating deductions
         const annualSalary = calculateAnnualSalary(salary, payFrequency);
 
         // Monthly conversion must remain within JavaScript's numeric range
@@ -125,7 +142,15 @@ salaryForm.addEventListener("submit", function(event) {
         // Calculate the take-home pay across different frequencies
         const payBreakdown = calculatePayBreakdown(takeHomePay);
 
-        // Update the output elements with the calculated values
+        // Calculate the total deductions for display
+        const totalDeductions = incomeTax + nationalInsurance;
+
+        // 11. Salary percentages - use the same annual amounts as the results
+        const takeHomePayPercentage = calculatePercentage(takeHomePay, annualSalary);
+        const incomeTaxPercentage = calculatePercentage(incomeTax, annualSalary);
+        const nationalInsurancePercentage = calculatePercentage(nationalInsurance, annualSalary);
+
+        // 12. Render monetary outputs, bar shares and rounded legend percentages
 
         annualPayElement.textContent = currencyFormatter.format(payBreakdown.annual);
         monthlyPayElement.textContent = currencyFormatter.format(payBreakdown.monthly);
@@ -133,8 +158,17 @@ salaryForm.addEventListener("submit", function(event) {
         dailyPayElement.textContent = currencyFormatter.format(payBreakdown.daily);
         incomeTaxElement.textContent = currencyFormatter.format(incomeTax);
         nationalInsuranceElement.textContent = currencyFormatter.format(nationalInsurance);
+        totalDeductionsElement.textContent = currencyFormatter.format(totalDeductions);
 
-        // Log the form values to the console for debugging
+        takeHomeSegment.style.setProperty("--share", takeHomePayPercentage);
+        incomeTaxSegment.style.setProperty("--share", incomeTaxPercentage);
+        nationalInsuranceSegment.style.setProperty("--share", nationalInsurancePercentage);
+
+        takeHomePercentageLabel.textContent = `${takeHomePayPercentage.toFixed(2)}%`;
+        incomeTaxPercentageLabel.textContent = `${incomeTaxPercentage.toFixed(2)}%`;
+        nationalInsurancePercentageLabel.textContent = `${nationalInsurancePercentage.toFixed(2)}%`;
+
+        // 13. Debugging and error handling - retain details for troubleshooting
         console.log("Form submitted!");
         console.log("Entered Salary:", salary);
         console.log("Country:", country);
@@ -150,8 +184,12 @@ salaryForm.addEventListener("submit", function(event) {
         console.log("Weekly Take-Home Pay:", payBreakdown.weekly);
         console.log("Daily Take-Home Pay:", payBreakdown.daily);
     } catch (error) {
+        // Clear partial results if calculation or rendering fails.
         clearResults();
         errorMessage.textContent = "Unable to calculate your take-home pay. Please try again.";
         console.error("Take-home pay calculation failed:", error);
     }
 });
+
+// Reaching this point confirms the module registered its event listeners.
+console.log("Pay Calc JavaScript loaded successfully!");
