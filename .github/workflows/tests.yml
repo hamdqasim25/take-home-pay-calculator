@@ -3,7 +3,8 @@ name: Pay Calc CI
 
 on:
   push:
-    branches: [main]
+    # Include active feature branches regardless of their naming convention.
+    branches: ['**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -13,8 +14,12 @@ permissions:
 
 jobs:
   test:
-    name: Run JavaScript Tests
+    name: JavaScript checks (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
 
     steps:
       - name: Checkout repository
@@ -23,8 +28,26 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: ${{ matrix.node }}
           package-manager-cache: false
 
-      - name: Run automated tests
+      # No install is needed today: the project has no dependencies or lockfile.
+      - name: Install locked dependencies when present
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
+      - name: Verify JavaScript syntax
+        run: npm run check:syntax
+
+      - name: Unit tests — salary, tax, NI, pensions and periods
+        run: npm run test:unit
+
+      - name: Integration tests — form and dashboard
+        run: npm run test:integration
+
+      - name: Full regression suite
         run: npm test
+
+      - name: Built-in coverage report
+        if: matrix.node == 24
+        run: npm run test:coverage

@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules --test"
+    "check:syntax": "node scripts/check-syntax.js",
+    "test:unit": "node --test tests/uk-calculations.test.js",
+    "test:integration": "node --experimental-vm-modules --test tests/form-validation.test.js",
+    "test": "node --experimental-vm-modules --test",
+    "test:coverage": "node --experimental-vm-modules --experimental-test-coverage --test"
   }
 }

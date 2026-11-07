@@ -10,6 +10,7 @@ const outputIds = [
     "annual-take-home-pay", "monthly-take-home-pay", "weekly-take-home-pay",
     "daily-take-home-pay", "income-tax", "national-insurance"
 ];
+const fourWeeklyIds = ["four-weekly-take-home-pay"];
 const annualResults = ["£28,719.60", "£2,393.30", "£552.30", "£78.68", "£4,486.00", "£1,794.40"];
 const monthlyResults = ["£25,119.60", "£2,093.30", "£483.07", "£68.82", "£3,486.00", "£1,394.40"];
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
@@ -32,7 +33,11 @@ async function createForm() {
             },
             getElementById(id) {
                 return elements[id] ??= {
-                    value: "", textContent: "", events: {},
+                    value: id === "pension-contribution" ? "0" : "",
+                    checked: false, disabled: id === "pension-contribution",
+                    textContent: "", events: {}, attributes: {},
+                    setAttribute(name, value) { this.attributes[name] = value; },
+                    focus() { this.focused = true; },
                     addEventListener(name, fn) { this.events[name] = fn; }
                 };
             }
@@ -52,7 +57,10 @@ async function createForm() {
     await main.evaluate();
     const set = (id, value) => { elements[id].value = value; };
     const values = () => outputIds.map(id => elements[id].textContent);
-    const placeholders = value => assert.deepEqual(values(), outputIds.map(() => value));
+    const placeholders = value => {
+        assert.deepEqual(values(), outputIds.map(() => value));
+        for (const id of fourWeeklyIds) assert.equal(elements[id].textContent, value);
+    };
     const error = () => elements["error-message"].textContent;
     const submit = () => {
         let prevented = false;
@@ -70,6 +78,163 @@ async function createForm() {
     const rules = modules.get(new URL("../js/tax-rules/uk-2026-27.js", import.meta.url).href).namespace.uk2026TaxRules;
     return { elements, logs, set, values, placeholders, error, submit, valid, rules };
 }
+
+function togglePension(form, enabled) {
+    form.elements["pension-enabled"].checked = enabled;
+    form.elements["pension-enabled"].events.change();
+}
+
+function assertDashboardCleared(form, placeholder) {
+    form.placeholders(placeholder);
+    for (const id of ["pension-deduction", "total-deductions"]) {
+        assert.equal(form.elements[id].textContent, placeholder);
+    }
+    for (const category of ["take-home", "income-tax", "national-insurance", "pension"]) {
+        assert.equal(form.elements[`.salary-segment.breakdown-${category}`].style["--share"], "0");
+        assert.equal(form.elements[`.${category}-percentage`].textContent, "0%");
+    }
+}
+
+test("Pension defaults to disabled and preserves the original £35000 dashboard", async () => {
+    const form = await createForm();
+    assert.equal(form.elements["pension-enabled"].checked, false);
+    assert.equal(form.elements["pension-contribution"].disabled, true);
+    form.valid();
+    assert.deepEqual(form.values(), annualResults);
+    assert.equal(form.elements["pension-deduction"].textContent, "£0.00");
+    assert.equal(form.elements["total-deductions"].textContent, "£6,280.40");
+    assert.equal(form.elements[".pension-percentage"].textContent, "0.00%");
+});
+
+test("Enabling pension defaults to 5% and renders deductions and all chart shares", async () => {
+    const form = await createForm();
+    form.valid();
+    togglePension(form, true);
+    assert.equal(form.elements["pension-contribution"].disabled, false);
+    assert.equal(form.elements["pension-contribution"].value, "5");
+    assertDashboardCleared(form, "£0.00");
+    form.submit();
+    assert.deepEqual(form.values(), ["£27,319.60", "£2,276.63", "£525.38", "£74.85", "£4,136.00", "£1,794.40"]);
+    assert.equal(form.elements["pension-deduction"].textContent, "£1,750.00");
+    assert.equal(form.elements["total-deductions"].textContent, "£7,680.40");
+    const amounts = { "take-home": 27319.6, "income-tax": 4136, "national-insurance": 1794.4, pension: 1750 };
+    let totalShare = 0;
+    for (const [category, amount] of Object.entries(amounts)) {
+        const expected = amount / 35000 * 100;
+        const share = Number(form.elements[`.salary-segment.breakdown-${category}`].style["--share"]);
+        assert.ok(Math.abs(share - expected) < 1e-8);
+        assert.equal(form.elements[`.${category}-percentage`].textContent, `${expected.toFixed(2)}%`);
+        totalShare += share;
+    }
+    assert.ok(Math.abs(totalShare - 100) < 1e-8);
+});
+
+test("Disabling pension clears results and ignores an invalid stored rate", async () => {
+    const form = await createForm();
+    form.valid();
+    togglePension(form, true);
+    form.submit();
+    togglePension(form, false);
+    assert.equal(form.elements["pension-contribution"].disabled, true);
+    assert.equal(form.elements["pension-contribution"].value, "0");
+    assertDashboardCleared(form, "£0.00");
+    form.set("pension-contribution", "invalid");
+    form.submit();
+    assert.deepEqual(form.values(), annualResults);
+    assert.equal(form.elements["pension-error"].textContent, "");
+    togglePension(form, true);
+    assert.equal(form.elements["pension-contribution"].value, "5");
+});
+
+for (const rate of ["", " ", "abc", "NaN", "Infinity", "-Infinity", "1e309", "-0.1", "100.01"]) {
+    test(`Invalid pension ${JSON.stringify(rate)} shows an accessible error and clears the dashboard`, async () => {
+        const form = await createForm();
+        form.valid();
+        togglePension(form, true);
+        form.submit();
+        form.set("pension-contribution", rate);
+        form.submit();
+        assertDashboardCleared(form, "-");
+        assert.match(form.elements["pension-error"].textContent, /between 0 and 100/);
+        assert.equal(form.elements["pension-contribution"].attributes["aria-invalid"], "true");
+        assert.equal(form.elements["pension-contribution"].focused, true);
+        form.set("pension-contribution", "5");
+        form.elements["pension-contribution"].events.input();
+        assertDashboardCleared(form, "£0.00");
+        assert.equal(form.elements["pension-error"].textContent, "");
+        assert.equal(form.elements["pension-contribution"].attributes["aria-invalid"], "false");
+        form.submit();
+        assert.equal(form.values()[0], "£27,319.60");
+    });
+}
+
+for (const event of ["input", "change"]) {
+    test(`Pension ${event} clears results until resubmission`, async () => {
+        const form = await createForm();
+        form.valid();
+        togglePension(form, true);
+        form.submit();
+        form.set("pension-contribution", "2.5");
+        form.elements["pension-contribution"].events[event]();
+        assertDashboardCleared(form, "£0.00");
+        form.submit();
+        assert.equal(form.elements["pension-deduction"].textContent, "£875.00");
+        assert.equal(form.values()[0], "£28,019.60");
+    });
+}
+
+test("Enabled pensions accept 0% and 100%, including negative take-home display", async () => {
+    const form = await createForm();
+    form.valid();
+    togglePension(form, true);
+    form.set("pension-contribution", "0");
+    form.submit();
+    assert.deepEqual(form.values(), annualResults);
+    form.set("pension-contribution", "100");
+    form.submit();
+    assert.equal(form.elements["pension-error"].textContent, "");
+    assert.equal(form.elements["pension-deduction"].textContent, "£35,000.00");
+    assert.equal(form.values()[0], "-£1,794.40");
+    assert.equal(form.values()[4], "£0.00");
+    assert.equal(form.values()[5], "£1,794.40");
+    assert.equal(form.elements[".salary-bar"].hidden, true);
+    assert.match(form.elements[".breakdown-note"].textContent, /negative take-home/);
+    togglePension(form, false);
+    form.submit();
+    assert.equal(form.elements[".salary-bar"].hidden, false);
+});
+
+test("Monthly pension input produces the same dashboard as equivalent annual salary", async () => {
+    const form = await createForm();
+    form.valid();
+    togglePension(form, true);
+    form.set("salary", "36000");
+    form.submit();
+    const annualValues = form.values();
+    form.set("salary", "3000");
+    form.set("pay-frequency", "Monthly");
+    form.submit();
+    assert.deepEqual(form.values(), annualValues);
+    assert.equal(form.elements["pension-deduction"].textContent, "£1,800.00");
+});
+
+test("Pension controls and dashboard have labels, help, errors and disabled defaults", () => {
+    assert.match(html, /<legend>Workplace Pension<\/legend>/);
+    const checkbox = html.match(/<input[^>]*id="pension-enabled"[^>]*>/)[0];
+    assert.doesNotMatch(checkbox, /\bchecked\b/);
+    const input = html.match(/<input[^>]*id="pension-contribution"[^>]*>/)[0];
+    for (const attribute of ['min="0"', 'max="100"', 'value="0"', 'disabled', 'aria-describedby="pension-help pension-error"']) {
+        assert.ok(input.includes(attribute));
+    }
+    assert.match(html, /id="pension-error" role="alert" aria-live="polite"/);
+    assert.match(html, /<label[^>]*for="pension-enabled"/);
+    assert.match(html, /<label[^>]*for="pension-contribution"/);
+    assert.match(html, /net pay pension arrangement/);
+    assert.match(html, /full gross salary/);
+    assert.ok(html.includes('<output id="pension-deduction">£0.00</output>'));
+    assert.match(html, /salary-segment breakdown-pension/);
+    assert.match(html, /legend-swatch breakdown-pension/);
+});
 
 test("£35000 annual updates all six results", async () => {
     const form = await createForm();
@@ -249,4 +414,43 @@ test("Editing after an error clears the message and restores £0.00", async () =
     assert.equal(form.error(), "");
     form.submit();
     assert.deepEqual(form.values(), annualResults);
+});
+
+for (const enabled of [false, true]) {
+    test(`Four-weekly dashboard renders take-home pay with pension ${enabled ? "enabled" : "disabled"}`, async () => {
+        const form = await createForm();
+        form.valid();
+        togglePension(form, enabled);
+        form.submit();
+        assert.deepEqual(fourWeeklyIds.map(id => form.elements[id].textContent), enabled
+            ? ["£2,101.51"]
+            : ["£2,209.20"]);
+    });
+}
+
+test("Four-weekly dashboard agrees for monthly and annual decimal salaries", async () => {
+    const form = await createForm();
+    form.valid();
+    togglePension(form, true);
+    form.set("salary", "30003");
+    form.submit();
+    const annual = fourWeeklyIds.map(id => form.elements[id].textContent);
+    form.set("salary", "2500.25");
+    form.set("pay-frequency", "Monthly");
+    form.submit();
+    assert.deepEqual(fourWeeklyIds.map(id => form.elements[id].textContent), annual);
+    assert.equal(annual[0], "£1,840.13");
+});
+
+test("Four-weekly outputs have initial placeholders, labels and no input option", () => {
+    for (const id of fourWeeklyIds) assert.ok(html.includes(`<output id="${id}">£0.00</output>`));
+    const details = html.match(/<div class="take-home-details">[\s\S]*?<\/div>/)[0];
+    assert.match(details, /Take-Home Pay Every 4 Weeks:/);
+    for (const id of ["four-weekly-take-home-pay", "weekly-take-home-pay", "daily-take-home-pay"]) {
+        assert.ok(details.includes(`id="${id}"`));
+    }
+    assert.doesNotMatch(html, /four-weekly-(gross|income-tax|national-insurance|pension|summary)/);
+    const frequencySelect = html.match(/<select id="pay-frequency"[\s\S]*?<\/select>/)[0];
+    assert.equal((frequencySelect.match(/<option/g) || []).length, 2);
+    assert.doesNotMatch(frequencySelect, /four|4 Weeks/i);
 });
