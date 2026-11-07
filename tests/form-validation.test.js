@@ -445,7 +445,7 @@ test("Four-weekly dashboard agrees for monthly and annual decimal salaries", asy
 test("Four-weekly outputs have initial placeholders, labels and no input option", () => {
     for (const id of fourWeeklyIds) assert.ok(html.includes(`<output id="${id}">£0.00</output>`));
     const details = html.match(/<div class="take-home-details">[\s\S]*?<\/div>/)[0];
-    assert.match(details, /Take-Home Pay Every 4 Weeks:/);
+    assert.match(details, /4-Weekly Take-Home Pay:/);
     for (const id of ["four-weekly-take-home-pay", "weekly-take-home-pay", "daily-take-home-pay"]) {
         assert.ok(details.includes(`id="${id}"`));
     }
