@@ -76,6 +76,21 @@ option {
     color: #1e293b;
 }
 
+.pension-section {
+    min-width: 0;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+.pension-section legend { padding: 0 4px; font-weight: 700; }
+.checkbox-label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.checkbox-label input { width: 20px; height: 20px; min-height: 20px; padding: 0; flex-shrink: 0; }
+.pension-help { margin: 8px 0 12px; color: #475569; font-size: 0.875rem; }
+input:disabled { background-color: #f1f5f9; color: #64748b; }
+input[aria-invalid="true"] { border-color: #b91c1c; }
+
 .error-message {
     color: #b91c1c;
     overflow-wrap: anywhere;
@@ -142,15 +157,20 @@ option {
     line-height: 1.2;
 }
 
-/* 9. Weekly and daily results */
+/* 9. Four-weekly, weekly and daily take-home results */
 .take-home-details {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px 20px;
     padding: 16px 0;
 }
 
-.take-home-details p { flex-direction: column; }
+.results-section .take-home-details p {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+}
 .take-home-details output { font-size: 1.125rem; }
 
 /* 10. Deductions: separate the total with a rule and stronger weight. */
@@ -198,6 +218,8 @@ option {
 .breakdown-take-home { background-color: #27825b; }
 .breakdown-income-tax { background-color: #d99a25; }
 .breakdown-national-insurance { background-color: #64748b; }
+.breakdown-pension { background-color: #7c3aed; }
+.salary-bar[hidden] { display: none; }
 
 .salary-legend {
     display: flex;
@@ -270,6 +292,5 @@ footer {
 
 @media (max-width: 480px) {
     .take-home-details { grid-template-columns: minmax(0, 1fr); }
-    .take-home-details p { flex-direction: row; }
     #annual-take-home-pay { font-size: 2rem; }
 }

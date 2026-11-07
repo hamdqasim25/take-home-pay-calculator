@@ -53,18 +53,30 @@
                             required
                         >
                     </div>
-                    <div class="form-group">
-                        <label for="pension-contribution">Pension Contribution (%):</label>
-                        <input
-                            type="number"
-                            id="pension-contribution"
-                            name="pension-contribution"
-                            min="0"
-                            max="100"
-                            step="0.5"
-                            value="0"
-                        >
-                    </div>
+                    <fieldset class="pension-section">
+                        <legend>Workplace Pension</legend>
+                        <label class="checkbox-label" for="pension-enabled">
+                            <input type="checkbox" id="pension-enabled" name="pension-enabled" aria-controls="pension-contribution">
+                            Enable workplace pension
+                        </label>
+                        <p id="pension-help" class="pension-help">Uses a net pay pension arrangement, with contributions calculated against your full gross salary. Contributions reduce Income Tax but do not reduce National Insurance.</p>
+                        <div class="form-group">
+                            <label for="pension-contribution">Pension Contribution (%):</label>
+                            <input
+                                type="number"
+                                id="pension-contribution"
+                                name="pension-contribution"
+                                min="0"
+                                max="100"
+                                step="any"
+                                value="0"
+                                disabled
+                                aria-describedby="pension-help pension-error"
+                                aria-invalid="false"
+                            >
+                        </div>
+                        <p class="error-message" id="pension-error" role="alert" aria-live="polite"></p>
+                    </fieldset>
                     <button type="submit">Calculate Take-Home Pay</button>
                 </form>
                 <p
@@ -89,6 +101,10 @@
                 </div>
                 <div class="take-home-details">
                     <p>
+                        4-Weekly Take-Home Pay:
+                        <output id="four-weekly-take-home-pay">£0.00</output>
+                    </p>
+                    <p>
                         Weekly Take-Home Pay:
                         <output id="weekly-take-home-pay">£0.00</output>
                     </p>
@@ -98,7 +114,7 @@
                     </p>
                 </div>
                 <section class="deductions-card">
-                    <h3>Your Deductions</h3>
+                    <h3>Your Annual Deductions</h3>
                     <p>
                         Income Tax:
                         <output id="income-tax">£0.00</output>
@@ -106,6 +122,10 @@
                     <p>
                         National Insurance:
                         <output id="national-insurance">£0.00</output>
+                    </p>
+                    <p>
+                        Workplace Pension (annual):
+                        <output id="pension-deduction">£0.00</output>
                     </p>
                     <p class="total-deductions">
                         Total Deductions:
@@ -119,11 +139,13 @@
                         <span class="salary-segment breakdown-take-home" data-category="take-home" style="--share: 0"></span>
                         <span class="salary-segment breakdown-income-tax" data-category="income-tax" style="--share: 0"></span>
                         <span class="salary-segment breakdown-national-insurance" data-category="national-insurance" style="--share: 0"></span>
+                        <span class="salary-segment breakdown-pension" data-category="pension" style="--share: 0"></span>
                     </div>
                     <ul class="salary-legend" aria-label="Calculated salary proportions">
                         <li data-category="take-home"><span class="legend-swatch breakdown-take-home" aria-hidden="true"></span>Take-home <span class="take-home-percentage">0%</span></li>
                         <li data-category="income-tax"><span class="legend-swatch breakdown-income-tax" aria-hidden="true"></span>Income Tax <span class="income-tax-percentage">0%</span></li>
                         <li data-category="national-insurance"><span class="legend-swatch breakdown-national-insurance" aria-hidden="true"></span>National Insurance <span class="national-insurance-percentage">0%</span></li>
+                        <li data-category="pension"><span class="legend-swatch breakdown-pension" aria-hidden="true"></span>Workplace Pension <span class="pension-percentage">0%</span></li>
                     </ul>
                 </section>
             </section>
