@@ -101,30 +101,117 @@ export function calculateNationalInsurance(annualSalary, taxRules) {
     return totalNI;
 }
 
-// STEP 6: Calculate take-home pay and salary breakdown
+// STEP 6: Calculate student loan repayments
 /**
- * Subtract employee pension, Income Tax and NI from gross salary.
+ * Estimate annual PAYE repayments from gross earnings subject to Class 1 NI.
+ * Net pay pension contributions and the Personal Allowance must NOT be deducted
+ * from these earnings. This is the NI earnings basis, not the amount of NI due.
+ *
+ * Assumes equal earnings in every repayment period for a full year. Thresholds
+ * are rounded down to pennies; each loan deduction is rounded down separately
+ * to whole pounds per base period before annualising. FourWeekly and Fortnightly
+ * use average weekly earnings, floor each weekly loan, then multiply by 4 or 2.
+ * Annual is a single annual pay
+ * period, not a prediction of monthly payroll. Salary input frequency and actual
+ * repayment frequency are independent. Bonuses, irregular/partial years, extra
+ * paydays, loan balances, start/stop notices and protected earnings are not modelled.
+ *
+ * @param {number} annualNIEarnings Annual Class 1 NI gross earnings, before net pay pension.
+ * @param {object} taxRules Selected tax year's studentLoans configuration.
+ * @param {object} [options={}] Loan selection and actual repayment frequency.
+ * @param {null|"plan1"|"plan2"|"plan4"|"plan5"} [options.plan=null] One standard plan.
+ * @param {boolean} [options.postgraduate=false] Also repay a postgraduate loan.
+ * @param {string} [options.repaymentFrequency="Annual"] Annual, Monthly,
+ *   FourWeekly, Fortnightly or Weekly (1, 12, 13, 26 or 52 periods).
+ * @returns {number} Combined annual repayment estimate in whole pounds; zero
+ *   when no loan is selected or no repayment is due.
+ * @throws {RangeError} For invalid earnings, selection, frequency or selected rules.
+ */
+export function calculateStudentLoanRepayment(annualNIEarnings, taxRules, options = {}) {
+    // 1. Validate inputs without coercion or silently accepting multiple plans.
+    if (!Number.isFinite(annualNIEarnings) || annualNIEarnings < 0) {
+        throw new RangeError("Student loan earnings must be a finite non-negative number.");
+    }
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+        throw new RangeError("Student loan options must be an object.");
+    }
+    const { plan = null, postgraduate = false, repaymentFrequency = "Annual" } = options;
+    if (plan !== null && !["plan1", "plan2", "plan4", "plan5"].includes(plan)) {
+        throw new RangeError("Student loan plan must be null or one of plan1, plan2, plan4, plan5.");
+    }
+    if (typeof postgraduate !== "boolean") {
+        throw new RangeError("Postgraduate selection must be a boolean.");
+    }
+    const periodsByFrequency = { Annual: 1, Monthly: 12, FourWeekly: 13, Fortnightly: 26, Weekly: 52 };
+    if (typeof repaymentFrequency !== "string" || !Object.hasOwn(periodsByFrequency, repaymentFrequency)) {
+        throw new RangeError("Unsupported student loan repayment frequency.");
+    }
+
+    // 2. Select at most one 9% loan and the optional independent postgraduate loan.
+    const selected = [];
+    if (plan !== null) selected.push(plan);
+    if (postgraduate) selected.push("postgraduate");
+    const periods = periodsByFrequency[repaymentFrequency];
+    // HMRC SL3: multiples of a week use the rounded average-week deduction.
+    // https://www.gov.uk/government/publications/sl3-student-loan-deduction-tables/2026-to-2027-student-and-postgraduate-loan-deduction-tables
+    const weeksPerPeriod = repaymentFrequency === "FourWeekly" ? 4 : repaymentFrequency === "Fortnightly" ? 2 : 1;
+    const basePeriods = periods * weeksPerPeriod;
+    const periodEarnings = annualNIEarnings / basePeriods;
+    let annualRepayment = 0;
+
+    // 3. Apply each selected threshold and rate, then annualise rounded deductions.
+    for (const key of selected) {
+        const rule = taxRules?.studentLoans?.[key];
+        if (!rule || !Number.isFinite(rule.annualThreshold) || rule.annualThreshold < 0 ||
+            !Number.isSafeInteger(Math.round(rule.annualThreshold * 100)) ||
+            !Number.isFinite(rule.rate) || rule.rate < 0 || rule.rate > 1) {
+            throw new RangeError("Invalid student loan threshold or rate for " + key + ".");
+        }
+        const periodThreshold = Math.floor(Math.round(rule.annualThreshold * 100) / basePeriods) / 100;
+        const unrounded = Math.max(0, periodEarnings - periodThreshold) * rule.rate;
+        // Correct only floating-point noise at an exact whole-pound boundary.
+        const periodRepayment = Math.floor(unrounded + Number.EPSILON * Math.max(1, unrounded) * 4);
+        annualRepayment += (periodRepayment * weeksPerPeriod) * periods;
+    }
+
+    // 4. Return the combined annual deduction for take-home pay and breakdowns.
+    if (!Number.isFinite(annualRepayment)) {
+        throw new RangeError("Student loan repayment exceeds the supported numeric range.");
+    }
+    return annualRepayment;
+}
+
+// STEP 7: Calculate take-home pay and salary breakdown
+/**
+ * Subtract employee pension, Income Tax, NI and loan repayments from gross salary.
  * @param {number} annualSalary Original annual gross salary.
  * @param {number} incomeTax Annual Income Tax after pension relief.
  * @param {number} nationalInsurance Annual NI on original gross salary.
  * @param {number} [pensionContribution=0] Annual pension amount, not a percentage.
+ * @param {number} [studentLoanRepayment=0] Combined annual standard/postgraduate repayment.
  * @returns {number} Annual take-home pay.
  */
-export function calculateTakeHomePay(annualSalary, incomeTax, nationalInsurance, pensionContribution = 0) {
-    return annualSalary - pensionContribution - incomeTax - nationalInsurance;
+export function calculateTakeHomePay(annualSalary, incomeTax, nationalInsurance, pensionContribution = 0, studentLoanRepayment = 0) {
+    return annualSalary - pensionContribution - incomeTax - nationalInsurance - studentLoanRepayment;
 }
 
 
 /**
  * Split salary amounts into periods; round only when displaying money.
- * @param {number} annualTakeHomePay Annual take-home pay from step 6.
+ * @param {number} annualTakeHomePay Annual take-home pay from step 7.
  * @param {number} [pensionContribution=0] Annual employee pension amount.
- * @param {{annualSalary: number, incomeTax: number, nationalInsurance: number}} [details]
+ * @param {{annualSalary: number, incomeTax: number, nationalInsurance: number, studentLoanRepayment?: number, standardLoanRepayment?: number, postgraduateLoanRepayment?: number}} [details]
  *   Optional annual gross and tax amounts, already calculated in earlier steps.
  * @returns {object} Take-home period fields and nested pension periods. When
  *   details are supplied, also includes gross, incomeTax and nationalInsurance
  *   period objects. Every period object uses annual, monthly, fourWeekly,
- *   weekly and daily keys. Existing one- and two-argument calls remain valid.
+ *   weekly and daily keys. Optional details.studentLoanRepayment adds studentLoan
+ *   periods (combined standard/postgraduate). These are averages of the annual
+ *   estimate, not recalculated payroll deductions at each displayed frequency.
+ *   Optional standardLoanRepayment and postgraduateLoanRepayment add separate
+ *   standardStudentLoan and postgraduateLoan period objects; no repayments are
+ *   recalculated here and the combined subtotal is not an additional deduction.
+ *   Omitting it preserves the existing return shape and all earlier calls.
  */
 export function calculatePayBreakdown(annualTakeHomePay, pensionContribution = 0, details) {
     return {
@@ -133,7 +220,16 @@ export function calculatePayBreakdown(annualTakeHomePay, pensionContribution = 0
         ...(details === undefined ? {} : {
             gross: splitAnnualAmount(details.annualSalary),
             incomeTax: splitAnnualAmount(details.incomeTax),
-            nationalInsurance: splitAnnualAmount(details.nationalInsurance)
+            nationalInsurance: splitAnnualAmount(details.nationalInsurance),
+            ...(details.studentLoanRepayment === undefined ? {} : {
+                studentLoan: splitAnnualAmount(details.studentLoanRepayment)
+            }),
+            ...(details.standardLoanRepayment === undefined ? {} : {
+                standardStudentLoan: splitAnnualAmount(details.standardLoanRepayment)
+            }),
+            ...(details.postgraduateLoanRepayment === undefined ? {} : {
+                postgraduateLoan: splitAnnualAmount(details.postgraduateLoanRepayment)
+            })
         })
     };
 }

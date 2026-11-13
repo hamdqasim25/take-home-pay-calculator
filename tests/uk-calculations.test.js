@@ -7,6 +7,7 @@ import {
     calculateTaxableIncome,
     calculateIncomeTax,
     calculateNationalInsurance,
+    calculateStudentLoanRepayment,
     calculateTakeHomePay,
     calculatePayBreakdown
 } from "../js/calculators/uk.js";
@@ -246,4 +247,211 @@ test("Four-weekly remains an output only and negative amounts retain their sign"
     assert.throws(() => calculateAnnualSalary(2500, "FourWeekly"), /Unsupported/);
     const result = calculateWithPension(35000, "Annual", 100);
     assert.equal(result.breakdown.fourWeekly, -1794.4 / 13);
+});
+
+// Phase 4.4.1: student loans. Expected thresholds/rates are independent fixtures
+// from HMRC's 2026-27 payroll specification, not copied from runtime config.
+const loanCases = [
+    ["plan1", 26900, 0.09], ["plan2", 29385, 0.09],
+    ["plan4", 33795, 0.09], ["plan5", 25000, 0.09],
+    ["postgraduate", 21000, 0.06]
+];
+const selectionFor = key => key === "postgraduate" ? { postgraduate: true } : { plan: key };
+
+for (const [key, threshold, rate] of loanCases) {
+    test(`${key}: 2026-27 rules and annual threshold boundaries`, () => {
+        assert.deepEqual(uk2026TaxRules.studentLoans[key], { annualThreshold: threshold, rate });
+        for (const earnings of [0, threshold - 0.01, threshold, threshold + 0.01, threshold + 1]) {
+            assert.equal(calculateStudentLoanRepayment(earnings, uk2026TaxRules, selectionFor(key)), 0);
+        }
+        assert.equal(calculateStudentLoanRepayment(threshold + 10000, uk2026TaxRules, selectionFor(key)), rate * 10000);
+        assert.equal(calculateStudentLoanRepayment(threshold + 1234.56, uk2026TaxRules, selectionFor(key)), Math.floor(1234.56 * rate));
+    });
+
+    test(`${key}: monthly threshold and first whole-pound deduction`, () => {
+        const options = { ...selectionFor(key), repaymentFrequency: "Monthly" };
+        const monthlyThreshold = Math.floor(threshold * 100 / 12) / 100;
+        for (const monthly of [monthlyThreshold - 0.01, monthlyThreshold, monthlyThreshold + 0.01]) {
+            assert.equal(calculateStudentLoanRepayment(monthly * 12, uk2026TaxRules, options), 0);
+        }
+        const penniesToFirstPound = Math.ceil(100 / rate);
+        assert.equal(calculateStudentLoanRepayment((monthlyThreshold + (penniesToFirstPound - 1) / 100) * 12, uk2026TaxRules, options), 0);
+        assert.equal(calculateStudentLoanRepayment((monthlyThreshold + penniesToFirstPound / 100) * 12, uk2026TaxRules, options), 12);
+    });
+}
+
+test("No loan selection returns zero and does not require loan configuration", () => {
+    assert.equal(calculateStudentLoanRepayment(50000, uk2026TaxRules), 0);
+    assert.equal(calculateStudentLoanRepayment(50000, {}, { plan: null, postgraduate: false }), 0);
+    assert.equal(calculateStudentLoanRepayment(0), 0);
+});
+
+test("One standard plan can coexist with postgraduate repayments, rounded separately", () => {
+    for (const [plan] of loanCases.slice(0, 4)) {
+        const combined = calculateStudentLoanRepayment(50000, uk2026TaxRules, { plan, postgraduate: true });
+        assert.equal(combined, calculateStudentLoanRepayment(50000, uk2026TaxRules, { plan }) + 1740);
+    }
+    // Annual unrounded amounts 729.9 + 840.6 must become 729 + 840, not 1570.
+    assert.equal(calculateStudentLoanRepayment(35010, uk2026TaxRules, { plan: "plan1", postgraduate: true }), 1569);
+    // Monthly amounts 67.5 + 120 must be rounded before multiplying by 12.
+    assert.equal(calculateStudentLoanRepayment(45000, uk2026TaxRules, {
+        plan: "plan4", postgraduate: true, repaymentFrequency: "Monthly"
+    }), 2448);
+    assert.equal(calculateStudentLoanRepayment(25000, uk2026TaxRules, { plan: "plan2", postgraduate: true }), 240);
+});
+
+test("PAYE periods floor thresholds to pennies and repayments to pounds before annualising", () => {
+    // Phase 4.4.2 corrects the former FourWeekly/Fortnightly expectation of 494:
+    // HMRC SL3 requires weekly flooring before multiplying by 4 or 2.
+    // Plan 2 at 35,000: annual 505; monthly 42*12; weekly 9*52.
+    for (const [repaymentFrequency, expected] of [
+        ["Annual", 505], ["Monthly", 504], ["FourWeekly", 468],
+        ["Fortnightly", 468], ["Weekly", 468]
+    ]) {
+        assert.equal(calculateStudentLoanRepayment(35000, uk2026TaxRules, { plan: "plan2", repaymentFrequency }), expected);
+    }
+    // Plan 1 weekly threshold is 517.30, not 517.31 or unrounded 26900/52.
+    assert.equal(calculateStudentLoanRepayment(617.30 * 52, uk2026TaxRules, { plan: "plan1", repaymentFrequency: "Weekly" }), 468);
+    assert.equal(calculateStudentLoanRepayment(617.29 * 52, uk2026TaxRules, { plan: "plan1", repaymentFrequency: "Weekly" }), 416);
+});
+
+test("Whole-pound boundary resists floating-point subtraction noise", () => {
+    // Plan 5 monthly threshold 2083.33; exactly 100 above gives 9 per month.
+    const options = { plan: "plan5", repaymentFrequency: "Monthly" };
+    assert.equal(calculateStudentLoanRepayment(2183.33 * 12, uk2026TaxRules, options), 108);
+    assert.equal(calculateStudentLoanRepayment(2183.32 * 12, uk2026TaxRules, options), 96);
+});
+
+test("Selected loan calculations use supplied tax-year rules", () => {
+    const rules = { studentLoans: { plan1: { annualThreshold: 10000, rate: 0.1 } } };
+    assert.equal(calculateStudentLoanRepayment(20000, rules, { plan: "plan1" }), 1000);
+});
+
+test("Loan earnings reject negative, non-finite and non-numeric inputs without coercion", () => {
+    for (const earnings of [-1, NaN, Infinity, -Infinity, "35000", "", null, undefined, true, {}, []]) {
+        assert.throws(() => calculateStudentLoanRepayment(earnings, uk2026TaxRules), /earnings/);
+    }
+});
+
+test("Invalid options, multiple plans, postgraduate flags and frequencies are rejected", () => {
+    for (const options of [null, [], "plan1", 1, true]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, uk2026TaxRules, options), /options/);
+    }
+    for (const plan of [1, "Plan1", "plan3", "postgraduate", "", "none", false, {}, ["plan1", "plan2"]]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, uk2026TaxRules, { plan }), /plan/);
+    }
+    for (const postgraduate of [null, "true", 1, 0, [], {}]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, uk2026TaxRules, { postgraduate }), /boolean/);
+    }
+    for (const repaymentFrequency of [null, "monthly", "Daily", "", "toString", {}, 12]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, uk2026TaxRules, { repaymentFrequency }), /frequency/);
+    }
+});
+
+test("Missing or invalid selected tax-year loan rules are rejected", () => {
+    for (const rules of [undefined, null, {}, { studentLoans: {} }, { studentLoans: { plan1: null } }]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, rules, { plan: "plan1" }), /threshold or rate/);
+    }
+    for (const annualThreshold of [-1, NaN, Infinity, "26900", null, 1e308]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, {
+            studentLoans: { plan1: { annualThreshold, rate: 0.09 } }
+        }, { plan: "plan1" }), /threshold or rate/);
+    }
+    for (const rate of [-0.01, 1.01, NaN, Infinity, "0.09", null, undefined]) {
+        assert.throws(() => calculateStudentLoanRepayment(35000, {
+            studentLoans: { postgraduate: { annualThreshold: 21000, rate } }
+        }, { postgraduate: true }), /threshold or rate/);
+    }
+    const rule = { annualThreshold: 0, rate: 1 };
+    assert.throws(() => calculateStudentLoanRepayment(1e308, {
+        studentLoans: { plan1: rule, postgraduate: rule }
+    }, { plan: "plan1", postgraduate: true }), /numeric range/);
+});
+
+test("Net pay pensions and Personal Allowance taper never reduce student loan earnings", () => {
+    for (const salary of [35000, 110000, 125140]) {
+        for (const pensionRate of [0, 5, 100]) {
+            const result = calculateWithPension(salary, "Annual", pensionRate);
+            const repayment = calculateStudentLoanRepayment(result.annualSalary, uk2026TaxRules, { plan: "plan2", postgraduate: true });
+            assert.equal(repayment, Math.floor((salary - 29385) * 0.09) + Math.floor((salary - 21000) * 0.06));
+            const takeHome = calculateTakeHomePay(salary, result.incomeTax, result.nationalInsurance, result.pensionContribution, repayment);
+            assert.equal(takeHome, result.takeHomePay - repayment);
+            if (pensionRate === 100) {
+                assert.equal(result.taxableIncome, 0);
+                assert.ok(repayment > 0);
+                assert.ok(takeHome < 0);
+            }
+        }
+    }
+});
+
+test("Loan deductions integrate with take-home and reconcile every breakdown period", () => {
+    const result = calculateWithPension(35000, "Annual", 5);
+    const repayment = calculateStudentLoanRepayment(result.annualSalary, uk2026TaxRules, { plan: "plan2", postgraduate: true, repaymentFrequency: "Monthly" });
+    assert.equal(repayment, 1344);
+    const takeHome = calculateTakeHomePay(35000, result.incomeTax, result.nationalInsurance, result.pensionContribution, repayment);
+    assert.equal(takeHome, 25975.6);
+    const breakdown = calculatePayBreakdown(takeHome, result.pensionContribution, { ...result, studentLoanRepayment: repayment });
+    for (const [period, divisor] of [["annual", 1], ["monthly", 12], ["fourWeekly", 13], ["weekly", 52], ["daily", 365]]) {
+        assert.equal(breakdown.studentLoan[period], repayment / divisor);
+        assert.ok(Math.abs(breakdown[period] + breakdown.pension[period] + breakdown.incomeTax[period] +
+            breakdown.nationalInsurance[period] + breakdown.studentLoan[period] - breakdown.gross[period]) < 1e-8);
+    }
+});
+
+test("Old signatures and shapes remain unchanged; explicit zero adds a zero loan breakdown", () => {
+    assert.equal(calculateTakeHomePay(35000, 4486, 1794.4), calculateTakeHomePay(35000, 4486, 1794.4, 0, 0));
+    const details = { annualSalary: 35000, incomeTax: 4486, nationalInsurance: 1794.4 };
+    const old = calculatePayBreakdown(28719.6, 0, details);
+    assert.equal(Object.hasOwn(old, "studentLoan"), false);
+    const current = calculatePayBreakdown(28719.6, 0, { ...details, studentLoanRepayment: 0 });
+    assert.deepEqual(current.studentLoan, { annual: 0, monthly: 0, fourWeekly: 0, weekly: 0, daily: 0 });
+    delete current.studentLoan;
+    assert.deepEqual(current, old);
+});
+
+test("Salary input frequency is independent of the actual loan repayment period", () => {
+    const options = { plan: "plan1", repaymentFrequency: "Monthly" };
+    assert.equal(calculateStudentLoanRepayment(calculateAnnualSalary(3000, "Monthly"), uk2026TaxRules, options),
+        calculateStudentLoanRepayment(calculateAnnualSalary(36000, "Annual"), uk2026TaxRules, options));
+});
+
+// Phase 4.4.2: HMRC SL3 multiple-week deductions use average-week flooring.
+for (const [key, weeklyDeduction] of [["plan1", 14], ["plan2", 9], ["plan4", 2], ["plan5", 17], ["postgraduate", 16]]) {
+    test(`${key}: four-weekly and fortnightly payroll multiply the rounded weekly deduction`, () => {
+        for (const [repaymentFrequency, weeks, periods] of [["FourWeekly", 4, 13], ["Fortnightly", 2, 26]]) {
+            const annual = calculateStudentLoanRepayment(35000, uk2026TaxRules, { ...selectionFor(key), repaymentFrequency });
+            assert.equal(annual, weeklyDeduction * weeks * periods);
+            assert.equal(annual / periods, weeklyDeduction * weeks);
+        }
+    });
+}
+
+test("Four-weekly combined loans floor each average-week repayment independently", () => {
+    const annual = calculateStudentLoanRepayment(35000, uk2026TaxRules, {
+        plan: "plan2", postgraduate: true, repaymentFrequency: "FourWeekly"
+    });
+    assert.equal(annual, 1300); // (9 + 16) * 4 * 13, not floor(total raw excess).
+    assert.equal(annual / 13, 100); // Old whole-period method produced 103 per payroll.
+    const options = { plan: "plan1", repaymentFrequency: "FourWeekly" };
+    assert.equal(calculateStudentLoanRepayment(617.30 * 52, uk2026TaxRules, options), 468);
+    assert.equal(calculateStudentLoanRepayment(617.29 * 52, uk2026TaxRules, options), 416);
+    assert.equal(calculateStudentLoanRepayment(26900, uk2026TaxRules, options), 0);
+});
+
+test("Separate loan breakdowns preserve all period averages and the combined subtotal", () => {
+    const breakdown = calculatePayBreakdown(25975.6, 1750, {
+        annualSalary: 35000, incomeTax: 4136, nationalInsurance: 1794.4,
+        standardLoanRepayment: 504, postgraduateLoanRepayment: 840, studentLoanRepayment: 1344
+    });
+    for (const [period, divisor] of [["annual", 1], ["monthly", 12], ["fourWeekly", 13], ["weekly", 52], ["daily", 365]]) {
+        assert.equal(breakdown.standardStudentLoan[period], 504 / divisor);
+        assert.equal(breakdown.postgraduateLoan[period], 840 / divisor);
+        assert.ok(Math.abs(breakdown.studentLoan[period] - breakdown.standardStudentLoan[period] - breakdown.postgraduateLoan[period]) < 1e-8);
+        assert.ok(Math.abs(breakdown[period] + breakdown.incomeTax[period] + breakdown.nationalInsurance[period] +
+            breakdown.pension[period] + breakdown.standardStudentLoan[period] + breakdown.postgraduateLoan[period] - breakdown.gross[period]) < 1e-8);
+    }
+    const old = calculatePayBreakdown(1, 0, { annualSalary: 1, incomeTax: 0, nationalInsurance: 0 });
+    assert.equal(Object.hasOwn(old, "standardStudentLoan"), false);
+    assert.equal(Object.hasOwn(old, "postgraduateLoan"), false);
 });
