@@ -24,5 +24,14 @@ export const uk2026TaxRules = {
     personalAllowanceTaperThreshold: 100000,
     personalAllowanceTaperRate: 0.50,
     incomeTaxBands: incomeTaxBands,
-    nationalInsuranceBands: nationalInsuranceBands
+    nationalInsuranceBands: nationalInsuranceBands,
+    // HMRC 2026-27 payroll technical specification (annual GBP thresholds).
+    // https://www.gov.uk/government/publications/payroll-technical-specifications-student-loans/collection-of-student-loans-from-6-april-2026
+    studentLoans: {
+        plan1: { annualThreshold: 26900, rate: 0.09 },
+        plan2: { annualThreshold: 29385, rate: 0.09 },
+        plan4: { annualThreshold: 33795, rate: 0.09 },
+        plan5: { annualThreshold: 25000, rate: 0.09 },
+        postgraduate: { annualThreshold: 21000, rate: 0.06 }
+    }
 };

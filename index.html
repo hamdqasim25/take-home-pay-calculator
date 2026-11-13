@@ -35,11 +35,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="pay-frequency">Pay Frequency:</label>
-                        <select id="pay-frequency" name="pay-frequency">
+                        <label for="pay-frequency">Salary Input Frequency:</label>
+                        <select id="pay-frequency" name="pay-frequency" aria-describedby="salary-frequency-help">
                             <option value="Annual">Annual</option>
                             <option value="Monthly">Monthly</option>
                         </select>
+                        <p id="salary-frequency-help" class="form-help">Is the salary you enter an annual or monthly amount?</p>
                     </div>
                     <div class="form-group">
                         <label for="salary">Gross Salary (£):</label>
@@ -77,6 +78,36 @@
                         </div>
                         <p class="error-message" id="pension-error" role="alert" aria-live="polite"></p>
                     </fieldset>
+                    <fieldset class="student-loan-section">
+                        <legend>Student Loan (optional)</legend>
+                        <p id="student-loan-help" class="form-help">Repay 9% above your plan's earnings threshold, plus 6% above the postgraduate threshold if selected. Repayments use gross earnings before net pay pension contributions.</p>
+                        <div class="form-group">
+                            <label for="student-loan-plan">Student Loan Plan:</label>
+                            <select id="student-loan-plan" name="student-loan-plan" aria-describedby="student-loan-help student-loan-error" aria-invalid="false">
+                                <option value="none" selected>None</option>
+                                <option value="plan1">Plan 1</option>
+                                <option value="plan2">Plan 2</option>
+                                <option value="plan4">Plan 4</option>
+                                <option value="plan5">Plan 5</option>
+                            </select>
+                        </div>
+                        <label class="checkbox-label" for="postgraduate-loan">
+                            <input type="checkbox" id="postgraduate-loan" name="postgraduate-loan" aria-describedby="postgraduate-help student-loan-error" aria-invalid="false">
+                            Repay a postgraduate loan
+                        </label>
+                        <p id="postgraduate-help" class="form-help">Select on its own or alongside one student loan plan.</p>
+                        <p class="error-message" id="student-loan-error" role="alert" aria-live="polite"></p>
+                    </fieldset>
+                    <div class="form-group">
+                        <label for="payroll-frequency">Payroll Frequency:</label>
+                        <select id="payroll-frequency" name="payroll-frequency" aria-describedby="payroll-help payroll-error" aria-invalid="false">
+                            <option value="Monthly" selected>Monthly</option>
+                            <option value="FourWeekly">Every 4 Weeks</option>
+                            <option value="Weekly">Weekly</option>
+                        </select>
+                        <p id="payroll-help" class="form-help">How often you are paid, separate from the salary amount entered. Used for student loan rounding; assumes equal pay throughout the year. Four-weekly loans use rounded weekly repayments multiplied by four. Displayed monthly, four-weekly, weekly and daily take-home amounts are annualised averages, not exact payslip amounts.</p>
+                        <p class="error-message" id="payroll-error" role="alert" aria-live="polite"></p>
+                    </div>
                     <button type="submit">Calculate Take-Home Pay</button>
                 </form>
                 <p
@@ -127,26 +158,83 @@
                         Workplace Pension (annual):
                         <output id="pension-deduction">£0.00</output>
                     </p>
+                    <p id="loan-averages-note" class="loan-averages-note" hidden>Expand each loan for estimated averages. Period values divide the annual estimate and may differ from actual payslip deductions. Four-weekly payroll rounding is applied before annualising.</p>
+                    <details id="standard-loan-details" class="loan-deduction" aria-describedby="loan-averages-note" hidden>
+                        <summary><span id="standard-loan-label">Student Loan (annual)</span> <output id="standard-loan-annual" aria-labelledby="standard-loan-label">£0.00</output></summary>
+                        <p><span id="standard-loan-monthly-label">Monthly average:</span> <output id="standard-loan-monthly" aria-labelledby="standard-loan-label standard-loan-monthly-label">£0.00</output></p>
+                        <p><span id="standard-loan-fourWeekly-label">Every 4 Weeks average:</span> <output id="standard-loan-fourWeekly" aria-labelledby="standard-loan-label standard-loan-fourWeekly-label">£0.00</output></p>
+                        <p><span id="standard-loan-weekly-label">Weekly average:</span> <output id="standard-loan-weekly" aria-labelledby="standard-loan-label standard-loan-weekly-label">£0.00</output></p>
+                        <p><span id="standard-loan-daily-label">Daily average:</span> <output id="standard-loan-daily" aria-labelledby="standard-loan-label standard-loan-daily-label">£0.00</output></p>
+                    </details>
+                    <details id="postgraduate-loan-details" class="loan-deduction" aria-describedby="loan-averages-note" hidden>
+                        <summary><span id="postgraduate-loan-label">Postgraduate Loan (annual)</span> <output id="postgraduate-loan-annual" aria-labelledby="postgraduate-loan-label">£0.00</output></summary>
+                        <p><span id="postgraduate-loan-monthly-label">Monthly average:</span> <output id="postgraduate-loan-monthly" aria-labelledby="postgraduate-loan-label postgraduate-loan-monthly-label">£0.00</output></p>
+                        <p><span id="postgraduate-loan-fourWeekly-label">Every 4 Weeks average:</span> <output id="postgraduate-loan-fourWeekly" aria-labelledby="postgraduate-loan-label postgraduate-loan-fourWeekly-label">£0.00</output></p>
+                        <p><span id="postgraduate-loan-weekly-label">Weekly average:</span> <output id="postgraduate-loan-weekly" aria-labelledby="postgraduate-loan-label postgraduate-loan-weekly-label">£0.00</output></p>
+                        <p><span id="postgraduate-loan-daily-label">Daily average:</span> <output id="postgraduate-loan-daily" aria-labelledby="postgraduate-loan-label postgraduate-loan-daily-label">£0.00</output></p>
+                    </details>
+                    <details id="combined-loans-details" class="loan-deduction" aria-describedby="loan-averages-note" hidden>
+                        <summary><span id="combined-loans-label">Combined Student Loans (annual)</span> <output id="combined-loans-annual" aria-labelledby="combined-loans-label">£0.00</output></summary>
+                        <p><span id="combined-loans-monthly-label">Monthly average:</span> <output id="combined-loans-monthly" aria-labelledby="combined-loans-label combined-loans-monthly-label">£0.00</output></p>
+                        <p><span id="combined-loans-fourWeekly-label">Every 4 Weeks average:</span> <output id="combined-loans-fourWeekly" aria-labelledby="combined-loans-label combined-loans-fourWeekly-label">£0.00</output></p>
+                        <p><span id="combined-loans-weekly-label">Weekly average:</span> <output id="combined-loans-weekly" aria-labelledby="combined-loans-label combined-loans-weekly-label">£0.00</output></p>
+                        <p><span id="combined-loans-daily-label">Daily average:</span> <output id="combined-loans-daily" aria-labelledby="combined-loans-label combined-loans-daily-label">£0.00</output></p>
+                        <p class="loan-subtotal-note">Subtotal of the two loans above, counted once in Total Deductions.</p>
+                    </details>
                     <p class="total-deductions">
-                        Total Deductions:
-                        <output id="total-deductions">£0.00</output>
+                        <span id="total-deductions-label">Total Deductions (annual):</span>
+                        <output id="total-deductions" aria-labelledby="total-deductions-label">£0.00</output>
                     </p>
                 </section>
+                <p id="results-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
                 <section class="salary-breakdown" aria-labelledby="salary-breakdown-title">
                     <h3 id="salary-breakdown-title">Where Your Salary Goes</h3>
                     <p class="breakdown-note">Breakdown of your calculated annual salary. Percentages are rounded to two decimal places.</p>
                     <div class="salary-bar" aria-hidden="true">
-                        <span class="salary-segment breakdown-take-home" data-category="take-home" style="--share: 0"></span>
-                        <span class="salary-segment breakdown-income-tax" data-category="income-tax" style="--share: 0"></span>
-                        <span class="salary-segment breakdown-national-insurance" data-category="national-insurance" style="--share: 0"></span>
-                        <span class="salary-segment breakdown-pension" data-category="pension" style="--share: 0"></span>
+                        <span class="salary-segment breakdown-take-home" data-category="take-home" style="--share: 0" hidden></span>
+                        <span class="salary-segment breakdown-income-tax" data-category="income-tax" style="--share: 0" hidden></span>
+                        <span class="salary-segment breakdown-national-insurance" data-category="national-insurance" style="--share: 0" hidden></span>
+                        <span class="salary-segment breakdown-pension" data-category="pension" style="--share: 0" hidden></span>
+                        <span class="salary-segment breakdown-student-loan" data-category="student-loan" style="--share: 0" hidden></span>
+                        <span class="salary-segment breakdown-postgraduate-loan" data-category="postgraduate-loan" style="--share: 0" hidden></span>
                     </div>
                     <ul class="salary-legend" aria-label="Calculated salary proportions">
-                        <li data-category="take-home"><span class="legend-swatch breakdown-take-home" aria-hidden="true"></span>Take-home <span class="take-home-percentage">0%</span></li>
-                        <li data-category="income-tax"><span class="legend-swatch breakdown-income-tax" aria-hidden="true"></span>Income Tax <span class="income-tax-percentage">0%</span></li>
-                        <li data-category="national-insurance"><span class="legend-swatch breakdown-national-insurance" aria-hidden="true"></span>National Insurance <span class="national-insurance-percentage">0%</span></li>
-                        <li data-category="pension"><span class="legend-swatch breakdown-pension" aria-hidden="true"></span>Workplace Pension <span class="pension-percentage">0%</span></li>
+                        <li data-category="take-home" hidden><span class="legend-swatch breakdown-take-home" aria-hidden="true"></span>Take-home <span class="take-home-percentage">0%</span></li>
+                        <li data-category="income-tax" hidden><span class="legend-swatch breakdown-income-tax" aria-hidden="true"></span>Income Tax <span class="income-tax-percentage">0%</span></li>
+                        <li data-category="national-insurance" hidden><span class="legend-swatch breakdown-national-insurance" aria-hidden="true"></span>National Insurance <span class="national-insurance-percentage">0%</span></li>
+                        <li data-category="pension" hidden><span class="legend-swatch breakdown-pension" aria-hidden="true"></span>Workplace Pension <span class="pension-percentage">0%</span></li>
+                        <li data-category="student-loan" hidden><span class="legend-swatch breakdown-student-loan" aria-hidden="true"></span><span id="student-loan-legend-label">Student Loan</span> <span class="student-loan-percentage">0%</span></li>
+                        <li data-category="postgraduate-loan" hidden><span class="legend-swatch breakdown-postgraduate-loan" aria-hidden="true"></span>Postgraduate Loan <span class="postgraduate-loan-percentage">0%</span></li>
                     </ul>
+                    <section id="salary-summary" class="salary-summary" aria-labelledby="salary-summary-title" hidden>
+                        <h4 id="salary-summary-title">Annual salary summary</h4>
+                        <dl>
+                            <div id="salary-summary-take-home-row" class="salary-summary-row" hidden>
+                                <dt><span class="legend-swatch breakdown-take-home" aria-hidden="true"></span><span id="salary-summary-take-home-label">Take-home pay</span></dt>
+                                <dd><output id="salary-summary-take-home-amount" aria-labelledby="salary-summary-title salary-summary-take-home-label">£0.00</output></dd>
+                            </div>
+                            <div id="salary-summary-income-tax-row" class="salary-summary-row" hidden>
+                                <dt><span class="legend-swatch breakdown-income-tax" aria-hidden="true"></span><span id="salary-summary-income-tax-label">Income Tax</span></dt>
+                                <dd><output id="salary-summary-income-tax-amount" aria-labelledby="salary-summary-title salary-summary-income-tax-label">£0.00</output></dd>
+                            </div>
+                            <div id="salary-summary-national-insurance-row" class="salary-summary-row" hidden>
+                                <dt><span class="legend-swatch breakdown-national-insurance" aria-hidden="true"></span><span id="salary-summary-national-insurance-label">National Insurance</span></dt>
+                                <dd><output id="salary-summary-national-insurance-amount" aria-labelledby="salary-summary-title salary-summary-national-insurance-label">£0.00</output></dd>
+                            </div>
+                            <div id="salary-summary-pension-row" class="salary-summary-row" hidden>
+                                <dt><span class="legend-swatch breakdown-pension" aria-hidden="true"></span><span id="salary-summary-pension-label">Workplace pension</span></dt>
+                                <dd><output id="salary-summary-pension-amount" aria-labelledby="salary-summary-title salary-summary-pension-label">£0.00</output></dd>
+                            </div>
+                            <div id="salary-summary-student-loan-row" class="salary-summary-row" hidden>
+                                <dt><span class="legend-swatch breakdown-student-loan" aria-hidden="true"></span><span id="salary-summary-student-loan-label">Standard student loan</span></dt>
+                                <dd><output id="salary-summary-student-loan-amount" aria-labelledby="salary-summary-title salary-summary-student-loan-label">£0.00</output></dd>
+                            </div>
+                            <div id="salary-summary-postgraduate-loan-row" class="salary-summary-row" hidden>
+                                <dt><span class="legend-swatch breakdown-postgraduate-loan" aria-hidden="true"></span><span id="salary-summary-postgraduate-loan-label">Postgraduate loan</span></dt>
+                                <dd><output id="salary-summary-postgraduate-loan-amount" aria-labelledby="salary-summary-title salary-summary-postgraduate-loan-label">£0.00</output></dd>
+                            </div>
+                        </dl>
+                    </section>
                 </section>
             </section>
         </div>

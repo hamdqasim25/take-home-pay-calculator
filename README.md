@@ -7,17 +7,18 @@ I created this project to practise building websites from scratch, solving pract
 ## Current features
 
 - UK salary estimates using the configured standard England Income Tax rules for 2026/27. Other UK tax configurations are not implemented.
-- Annual and monthly gross salary inputs. Four-weekly is an output period only.
+- Annual and monthly gross salary inputs, separate from Monthly, Every 4 Weeks or Weekly payroll for student loan repayments.
 - Progressive Income Tax, Personal Allowance tapering above £100,000 and employee National Insurance.
 - Optional workplace pensions under a **net pay arrangement**, calculated on full gross salary. Disabled means 0%; enabling starts at 5%. Valid rates are 0–100%.
 - Pension contributions reduce income for Income Tax and the Personal Allowance taper; NI still uses original gross salary.
 - Annual, monthly, four-weekly, weekly and daily take-home breakdowns. The calculation module also returns those periods for pensions, gross salary and taxes when supplied with the annual details.
-- A dashboard with annual deductions, a salary chart and pension legend. “Take-Home Pay Every 4 Weeks” uses the same simple presentation as weekly and daily take-home pay, without extra period breakdowns.
+- A dashboard with annual deductions and a six-component salary chart: take-home pay, Income Tax, NI, pension, standard student loan and postgraduate loan. Selected loans have expandable annual/monthly/four-weekly/weekly/daily amounts; unselected loan rows and zero-value chart segments/legend entries are hidden.
+- A vertical annual salary summary below the chart legend uses the same component amounts, order and colours. Zero-value rows are hidden; signed negative take-home remains visible even when the bar is unavailable.
 - Inline validation, associated pension error messages, keyboard focus styles and responsive layouts. Editing inputs clears outdated results until the next submission.
 
-Only **2026/27** is supported. The existing 2025/26 selector option is rejected with an unsupported-year message. Student loans, salary sacrifice, relief-at-source pensions and other countries are planned, not implemented.
+Only **2026/27** is supported. The existing 2025/26 selector option is rejected with an unsupported-year message. Optional student loan controls support Plans 1, 2, 4, 5 and independent postgraduate repayments, with Monthly payroll selected by default. The dashboard names the selected plan, separates standard and postgraduate amounts, and shows a combined subtotal when both are selected. This subtotal is counted once in total deductions and is not an extra chart segment. Selected loans below threshold retain a £0 row. A live text summary announces annual take-home pay and deductions. See the [engine API and estimate limitations](docs/student-loans.md). Salary sacrifice, relief-at-source pensions and other countries are planned, not implemented.
 
-Calculations are estimates, not a payroll service. Period amounts are averages of annual calculations, not period-specific payroll deductions. Four-weekly amounts use annual / 13, monthly annual / 12, weekly annual / 52 and daily annual / 365. Values remain unrounded until GBP presentation. A 100% pension can leave negative take-home pay because NI still applies; the dashboard shows the amounts and hides the stacked chart with an explanation.
+Calculations are estimates, not a payroll service. Displayed period amounts are averages of annual calculations, not exact payslip amounts. Four-weekly amounts use annual / 13, monthly annual / 12, weekly annual / 52 and daily annual / 365. Student loans apply payroll rounding before annualising: thresholds down to pennies and each repayment down to whole pounds, using rounded weekly repayments multiplied by four for four-weekly payroll. Other values remain unrounded until GBP presentation. A 100% pension can leave negative take-home pay because NI and any loan repayments still apply; the dashboard shows the amounts and hides the stacked chart with an explanation.
 
 ## Technology stack
 
@@ -59,6 +60,12 @@ Tax rules remain separate from calculation logic so another tax year can supply 
 
 `calculatePayBreakdown(takeHomePay, pensionContribution, details)` retains its first two arguments. The optional `details` object contains `annualSalary`, `incomeTax` and `nationalInsurance`. Take-home fields stay at the top level; `pension` remains nested. Supplying details adds nested `gross`, `incomeTax` and `nationalInsurance` objects. Each uses `annual`, `monthly`, `fourWeekly`, `weekly` and `daily` keys.
 
+Optional `studentLoanRepayment`, `standardLoanRepayment` and `postgraduateLoanRepayment`
+details add `studentLoan` (combined), `standardStudentLoan` and `postgraduateLoan`
+period objects. The form calls the existing repayment engine separately for each
+loan and sums those results once. No threshold, rate or payroll-rounding logic was
+changed in Phase 4.4.3. Native loan details retain their expanded state on updates.
+
 ## Development roadmap
 
 Status describes the implementation in this checkout, not an assertion that changes have been deployed. **Complete** means implemented with the stated automated checks; browser QA is tracked separately. **In progress** means part of a phase exists. **Planned** means work has not been implemented.
@@ -92,7 +99,8 @@ Status describes the implementation in this checkout, not an assertion that chan
 - [x] Phase 4.1: net pay workplace pension calculation logic.
 - [x] Phase 4.2: pension input, validation, deductions and chart integration.
 - [x] Phase 4.3: four-weekly gross, take-home, tax, NI and pension breakdowns.
-- [ ] Student loan repayments — planned.
+- [x] Student loan calculation engine, form controls and payroll frequency integration.
+- [x] Student loan deduction rows, expandable period averages and chart segments — Phase 4.4.3.
 - [ ] Salary sacrifice and relief-at-source pension methods — planned.
 
 **Milestone / acceptance:** implemented pension and period tests pass with existing no-pension results unchanged. Future deduction methods need their own rules, UI explanations and boundary tests before being marked complete.
@@ -120,7 +128,7 @@ Status describes the implementation in this checkout, not an assertion that chan
 
 ## Automated testing and CI
 
-Last confirmed local run: **76 passing tests**, comprising **23 calculation unit tests** and **53 form/HTML integration tests**, on Node.js **24.20.0** (7 November 2026).
+Last confirmed local run: **153 passing tests**, comprising **52 calculation unit tests** and **101 form/HTML integration tests**, on Node.js **24.20.0** (13 November 2026). All 143 prior scenarios are retained. The vertical summary adds ten integration tests; calculation and payroll logic are unchanged.
 
 ```sh
 npm run check:syntax
@@ -136,6 +144,6 @@ The single workflow, `.github/workflows/tests.yml`, runs on pushes to all branch
 
 The workflow retains maintained [`actions/checkout@v7`](https://github.com/actions/checkout) and [`actions/setup-node@v7`](https://github.com/actions/setup-node). The matrix defines intended compatibility; Node 22 and GitHub-hosted execution have not yet been verified for this change.
 
-[Node's built-in coverage](https://nodejs.org/api/cli.html#--experimental-test-coverage) reports source-file coverage in logs without dependencies or arbitrary thresholds. The confirmed local report measured **99.56% lines, 98.28% branches and 100% functions** across the reported JavaScript source files. These figures describe this test run; they do not measure CSS, browser layout, screen-reader behaviour or tax-law correctness.
+[Node's built-in coverage](https://nodejs.org/api/cli.html#--experimental-test-coverage) reports source-file coverage in logs without dependencies or arbitrary thresholds. The confirmed local report measured **99.70% lines, 99.24% branches and 100% functions** across the reported JavaScript source files. These figures describe this test run; they do not measure CSS, browser layout, screen-reader behaviour or tax-law correctness.
 
 See [tests/README.md](tests/README.md) for test provenance, coverage scope and the manual browser checklist. Automated checks do not replace browser QA: verify desktop/mobile layout, keyboard access, native number-input behaviour, error announcements and chart rendering before release.

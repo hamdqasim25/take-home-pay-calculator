@@ -37,8 +37,38 @@ monthly inputs; display rounding; and output-only frequency support. Existing
 placeholder assertions now also check the four-weekly take-home output, including after
 salary/pension edits, invalid inputs and injected calculation/render failures.
 
-Total: **76 passing tests (53 form/HTML checks and 23 calculation tests)**,
-confirmed locally on Node 24.20.0 on 7 November 2026.
+Phase 4.4.1 adds 22 student loan unit tests in `uk-calculations.test.js`:
+all five configured thresholds/rates; annual and monthly boundaries; first
+whole-pound deductions; all five repayment frequencies; threshold penny flooring;
+floating-point boundaries; combined standard/postgraduate rounding; no selection;
+custom/missing/invalid rules; invalid earnings/options/plans/flags/frequencies;
+pension and allowance interactions; take-home/breakdown reconciliation; old API
+compatibility; and salary-input versus repayment-frequency independence.
+
+Phase 4.4.2 adds six unit tests for average-week flooring before multiplying by
+four/two and 23 integration/HTML tests for plan selection, postgraduate alone or
+combined, all payroll choices, pension interactions, salary-entry independence,
+resets, accessible validation/recovery, engine errors and temporary chart hiding.
+All 98 previous scenarios are retained. One existing period test corrects its
+FourWeekly/Fortnightly expectations from 494 to 468 under HMRC SL3 guidance.
+
+Phase 4.4.3 adds one unit test for separate loan period objects and reconciliation,
+plus 15 integration/HTML tests covering all standard plans, postgraduate alone and
+combined, six chart proportions and legend visibility, all average periods,
+weekly/four-weekly payroll, selected zero repayments, zero/negative take-home,
+expanded-state preservation, stale-result clearing, accessible labels and live totals.
+All 127 prior scenarios remain. Assertions for the temporary hidden loan chart and
+absence of loan segments now expect the completed chart. Existing clearing helpers
+also verify every new output and chart segment.
+
+The vertical salary summary adds ten integration/HTML tests: eight pension/loan
+combinations, stale-value and plan-label clearing, and accessible markup/order/colour
+reuse. Existing chart and clearing helpers now also check summary amounts and
+visibility, including zero/negative take-home scenarios.
+
+Total: **153 tests (101 form/HTML checks and 52 calculation tests)**.
+See [student loan engine documentation](../docs/student-loans.md)
+for the API, calculation flow, HMRC sources and annual-estimate limitations.
 
 ## Local commands and CI stages
 
@@ -56,7 +86,8 @@ the job on errors. A conditional `npm ci` step applies only when a lockfile exis
 this dependency-free checkout has no lockfile. Workflow permissions are read-only.
 
 The measured local coverage report lists `uk.js`, `main.js` and `uk-2026-27.js`:
-99.56% lines, 98.28% branches and 100% functions overall. There is no threshold.
+99.70% lines, 99.24% branches and 100% functions overall, confirmed on Node
+24.20.0 on 13 November 2026. All five commands above passed. There is no threshold.
 The report covers executed JavaScript, including VM-loaded modules on this local
 Node version; it is not browser, CSS, workflow or tax-law verification.
 
@@ -81,6 +112,29 @@ Node version; it is not browser, CSS, workflow or tax-law verification.
   clears alongside existing results. Invalid submissions should show dashes.
 
 ## Test scope
+
+Student loan browser checks remain manual:
+
+- Verify the new annual summary appears below the existing legend on desktop and
+  mobile, with matching swatch colours. Check long labels/amounts at 320px and zoom,
+  screen-reader label/value associations, hidden zero rows and signed negative pay.
+
+- Check desktop and 320px mobile layouts, zoom, long currency values and wrapped
+  loan summaries/legend labels; no horizontal overflow or clipped controls.
+- Use Tab, Enter and Space to expand/collapse loan details. Confirm expanded state
+  survives recalculation and focus is visible. Verify plan changes clear stale labels.
+- Use a screen reader to check each period output's loan label, total deductions,
+  the concise results announcement, and access to amounts without the chart.
+- At £35,000 with 5% pension, Plan 2 and postgraduate, check £504/£840 annual loans,
+  £1,344 subtotal, £9,024.40 total deductions and £25,975.60 take-home; all six chart
+  components must be represented. Switch to four-weekly payroll: £468/£832 loans.
+- Check no loans, postgraduate only, selected loans below threshold, and restoring
+  controls after errors. Hidden rows, zero segments and zero legends must stay hidden.
+- At £10,000 and 100% pension, verify zero take-home and a pension-only chart. At
+  £35,000 and 100% pension with both loans, verify negative take-home remains textual
+  and only the chart is unavailable, with its explanation.
+
+Automated checks in this phase used the simulated DOM, not a live browser.
 
 The tests load production JavaScript without rewriting its imports or adding
 test hooks. Node's `vm.SourceTextModule` requires `--experimental-vm-modules`,
